@@ -1,0 +1,1 @@
+Input one or more quote encased inline C++ definitions for mangling and hashing, e.g. "public: void * __cdecl rtti::ClassType::CastTo(class rtti::ClassType const *,void *)const" "public: __cdecl rtti::Function::Function(class CName,class CName,unsigned int)"
