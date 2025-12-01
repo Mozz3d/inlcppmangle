@@ -115,7 +115,7 @@ class Node(metaclass=MetaNode):
     def parse(self, string):
         match = self.regex.fullmatch(string)
         if not match:
-            raise SyntaxError(f"invalid {type(self).__name__} '{string}'")
+            raise SyntaxError(f'invalid {type(self).__name__} "{string}"')
         
         return match
     
@@ -544,7 +544,7 @@ class TypeID(Node):
             else None
         )
         
-        if self.cv_qualifiers:
+        if self.cv_qualifiers and self.isPtr():
             if Keys.CONST in self.cv_qualifiers:
                 self.ptr_declarator.isPtrToConst = True
             if Keys.VOLATILE in self.cv_qualifiers:
@@ -988,6 +988,7 @@ class DestructorDefinition(FuncNode):
             (?P<funcClass>
                 (?:{AccessSpecifier.genericPattern})\s*
                 (?:\{Keys.ACCESS_SCOPE}\s*)?
+                (?:{Keys.VIRTUAL})?
             )\s+
             (?!(?P<retType>{TypeID.genericPattern})\s+)
             (?:(?P<callConv>{CallConvention.genericPattern})\s+)?
