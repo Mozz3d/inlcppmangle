@@ -1,4 +1,4 @@
-import argparse, re, zlib, hashlib
+import argparse, re
 from types import SimpleNamespace
 
 
@@ -1543,13 +1543,6 @@ class Mangler:
         return self.result
 
 
-def adler32(data):
-    return zlib.adler32(str(data).encode('utf-8'))
-
-def sha256(data):
-    return hashlib.sha256(str(data).encode('utf-8')).hexdigest().upper()
-
-
 parser = argparse.ArgumentParser(description="Accepts inline C++ definitions for mangling and hashing")
 parser.add_argument("definitions", nargs='+', default="", help='One or more quote encased inline C++ definition, e.g. "public: void MyClass::myMethod(void*) const"')
 
@@ -1559,8 +1552,6 @@ def main():
         mangled = Mangler(Definition(raw_def))
         print('')
         print(mangled)
-        print(adler32(mangled))
-        print(sha256(mangled))
 
 if __name__ == "__main__":
     main()
