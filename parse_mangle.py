@@ -30,6 +30,7 @@ Keys = SimpleNamespace(
     STATIC = 'static',
     VIRTUAL = 'virtual',
     CDECL = '__cdecl',
+    STDCALL = '__stdcall',
     FASTCALL = '__fastcall',
     
     VOID = 'void',
@@ -43,6 +44,7 @@ Keys = SimpleNamespace(
     INT = 'int',
     LONG = 'long',
     INT64 = '__int64',
+    WCHAR = 'wchar_t',
     CLASS = 'class',
     STRUCT = 'struct',
     UNION = 'union',
@@ -52,7 +54,8 @@ Keys = SimpleNamespace(
     RVAL_REF = '&&',
     PTR64 = '__ptr64',
  
-    DESTRUCTOR = '~'
+    DESTRUCTOR = '~',
+    ASTERISK = '*'
 )
 
 class lazyattr(property):
@@ -173,11 +176,15 @@ class ResolutionSpecifier(Node):
 class CallConvention(Node):
     @lazyattr
     def regex(cls):
-        return re.compile(rf'{Keys.CDECL}|{Keys.FASTCALL}', re.VERBOSE)
+        return re.compile(rf'{Keys.CDECL}|{Keys.STDCALL}|{Keys.FASTCALL}', re.VERBOSE)
 
     @lazyattr
     def CDECL(cls):
         return cls(Keys.CDECL)
+    
+    @lazyattr
+    def STDCALL(cls):
+        return cls(Keys.STDCALL)
 
     def __init__(self, string: str):
         self.specifier: str = self.parse(string).group()
@@ -328,8 +335,14 @@ class UnqualifiedID(Node):
 class OverloadableOperator(Node):
     @lazyattr
     def regex(cls):
-        return re.compile(r'\+\+|--|<=>|==|!=|<=|>=|&&|\|\||\+=|-=|\*=|/=|%=|<<=|>>=|&=|\|=|\^=|<<|>>|->*|->|\[\]|\(\)|[+\-*/%<>&|^~!=,]', re.VERBOSE)
-
+        return re.compile(r'''
+            \+\+|--|<=>|==|!=|<=|>=|{Keys.PTR}|&&|\|\||\+=|-=|\*=|/=|%=|<<=|>>=|&=|\|=|\^=|<<|>>|->*|->|\[\]|\(\)|[+\-*/%<>&|^~!=,]
+        ''', re.VERBOSE)
+    
+    @lazyattr
+    def PTR(cls):
+        return cls(Keys.PTR)
+    
     def __init__(self, string: str):
         self.operator: str = self.parse(string).group()
 
@@ -401,7 +414,7 @@ class FundamentalTypeSpecifier(Node):
             (?:{Keys.VOID}|{Keys.BOOL}|{Keys.FLOAT}|{Keys.DOUBLE})
             |
             (?:(?P<signage>{Keys.SIGNED}|{Keys.UNSIGNED})\s+)?
-            (?:{Keys.CHAR}|{Keys.SHORT}|{Keys.INT}|{Keys.LONG}|{Keys.INT64})
+            (?:{Keys.CHAR}|{Keys.WCHAR}|{Keys.SHORT}|{Keys.INT}|{Keys.LONG}|{Keys.INT64})
         ''', re.VERBOSE)
 
     @lazyattr
@@ -431,7 +444,11 @@ class FundamentalTypeSpecifier(Node):
     @lazyattr
     def UCHAR(cls):
         return cls(f'{Keys.UNSIGNED} {Keys.CHAR}')
-
+    
+    @lazyattr
+    def WCHAR(cls):
+        return cls(Keys.WCHAR)
+    
     @lazyattr
     def SHORT(cls):
         return cls(Keys.SHORT)
@@ -1324,7 +1341,7 @@ class Mangler:
             result += self.mangleScope(scope.scope)
 
         return result
-
+    
     def mangleID(self, _id: IDExpression):
         match _id:
             case UnqualifiedID():
@@ -1333,6 +1350,10 @@ class Mangler:
                 result = '?0'
             case DestructorID():
                 result = '?1'
+            case OperatorFunctionID():
+                match _id.identifier:
+                    case OverloadableOperator.PTR:
+                        result = '?D'
             case ImplicitPropertyID():
                 result = '?_7'
             case _:
@@ -1374,6 +1395,8 @@ class Mangler:
                 return '_K'
             case FundamentalTypeSpecifier.BOOL:
                 return '_N'
+            case FundamentalTypeSpecifier.WCHAR:
+                return '_W'
 
     def mangleClassKey(self, cls_key: ClassKey):
         match cls_key:
@@ -1402,6 +1425,8 @@ class Mangler:
         match call_conv:
             case CallConvention.CDECL:
                 return 'A'
+            case CallConvention.STDCALL:
+                return 'G'
             case CallConvention.FASTCALL:
                 return 'I'
 
@@ -1549,7 +1574,8 @@ parser.add_argument("definitions", nargs='+', default="", help='One or more quot
 def main():
     args = parser.parse_args()
     for raw_def in args.definitions:
-        mangled = Mangler(Definition(raw_def))
+        _def = Definition(raw_def)
+        mangled = Mangler(_def)
         print('')
         print(mangled)
 
