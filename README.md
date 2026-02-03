@@ -1,4 +1,4 @@
-Input one or more quote-encased inline C++ definitions for mangling, e.g. 
+Input one or more quote-encased inline C++ definitions for mangling, e.g.
 "public: void * __cdecl rtti::ClassType::CastTo(class rtti::ClassType const *,void *)const"
 ?CastTo@ClassType@rtti@@QEBAPEAXPEBV12@PEAX@Z
 
