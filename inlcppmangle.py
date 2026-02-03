@@ -1568,16 +1568,18 @@ class Mangler:
         return self.result
 
 
-parser = argparse.ArgumentParser(description="Accepts inline C++ definitions for mangling and hashing")
-parser.add_argument("definitions", nargs='+', default="", help='One or more quote encased inline C++ definition, e.g. "public: void MyClass::myMethod(void*) const"')
+arg_parser = argparse.ArgumentParser(description="Accepts inline C++ definitions for mangling and hashing")
+arg_parser.add_argument("definitions", nargs='+', help='One or more quote encased inline C++ definition, e.g. "public: void MyClass::myMethod(void*) const"')
 
-def main():
-    args = parser.parse_args()
+def main(argv=None):
+    args = arg_parser.parse_args(argv)
+    results = []
     for raw_def in args.definitions:
         _def = Definition(raw_def)
-        mangled = Mangler(_def)
-        print('')
-        print(mangled)
+        results.append(str(Mangler(_def)))
+    return results
 
 if __name__ == "__main__":
-    main()
+    results = main()
+    for result in results:
+        print(result)
