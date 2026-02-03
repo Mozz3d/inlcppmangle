@@ -1555,6 +1555,7 @@ class Mangler:
         return result
     
     def mangle(self, _def: Definition):
+        _def = Definition(_def) if not isinstance(_def, Definition) else _def
         result = '?'
         match _def:
             case FunctionDefinition():
@@ -1571,13 +1572,15 @@ class Mangler:
 arg_parser = argparse.ArgumentParser(description="Accepts inline C++ definitions for mangling and hashing")
 arg_parser.add_argument("definitions", nargs='+', help='One or more quote encased inline C++ definition, e.g. "public: void MyClass::myMethod(void*) const"')
 
-def main(argv=None):
-    args = arg_parser.parse_args(argv)
+def mangle_defs(definitions):
     results = []
-    for raw_def in args.definitions:
-        _def = Definition(raw_def)
+    for _def in definitions:
         results.append(str(Mangler(_def)))
     return results
+
+def main(argv=None):
+    args = arg_parser.parse_args(argv)
+    return mangle_defs(args.definitions)
 
 if __name__ == "__main__":
     results = main()
