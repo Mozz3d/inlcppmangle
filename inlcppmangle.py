@@ -1573,10 +1573,7 @@ arg_parser = argparse.ArgumentParser(description="Accepts inline C++ definitions
 arg_parser.add_argument("definitions", nargs='+', help='One or more quote encased inline C++ definition, e.g. "public: void MyClass::myMethod(void*) const"')
 
 def mangle_defs(definitions):
-    results = []
-    for _def in definitions:
-        results.append(str(Mangler(_def)))
-    return results
+    return list(str(Mangler(_def)) for _def in definitions)
 
 def main(argv=None):
     args = arg_parser.parse_args(argv)
