@@ -101,7 +101,7 @@ class Node(metaclass=MetaNode):
             
             cls._flattened_producers = flatten_producers(cls.producers)
     
-    def __new__(cls, string: str):
+    def __new__(cls, string):
         if not hasattr(cls, 'producers') or not cls.producers:
             return super().__new__(cls)
             
@@ -146,10 +146,10 @@ class AccessSpecifier(Node):
     def PROTECTED(cls):
         return cls(Keys.PROTECTED)
     
-    def __init__(self, string: str):
+    def __init__(self, string):
         self.specifier: str = self.parse(string).group()
 
-    def __str__(self) -> str:
+    def __str__(self):
         return self.specifier
 
 
@@ -166,10 +166,10 @@ class ResolutionSpecifier(Node):
     def VIRTUAL(cls):
         return cls(Keys.VIRTUAL)
     
-    def __init__(self, string: str):
+    def __init__(self, string):
         self.specifier: str = self.parse(string).group()
     
-    def __str__(self) -> str:
+    def __str__(self):
         return self.specifier
 
 
@@ -186,10 +186,10 @@ class CallConvention(Node):
     def STDCALL(cls):
         return cls(Keys.STDCALL)
 
-    def __init__(self, string: str):
+    def __init__(self, string):
         self.specifier: str = self.parse(string).group()
     
-    def __str__(self) -> str:
+    def __str__(self):
         return self.specifier
 
 
@@ -230,7 +230,7 @@ class CVQualifierSeq(Node):
     def __add__(self, other):
         return CVQualifierSeq(f'{self} {other}')
     
-    def __str__(self) -> str:
+    def __str__(self):
         return ' '.join(self.qualifiers).strip()
 
 
@@ -239,10 +239,10 @@ class ConstantExpression(Node):
     def regex(cls):
         return re.compile(r'\d+', re.VERBOSE)
     
-    def __init__(self, string: str):
-        self.value = self.parse(string).group()
+    def __init__(self, string):
+        self.value: str = self.parse(string).group()
     
-    def __str__(self) -> str:
+    def __str__(self):
         return self.value
 
 
@@ -251,7 +251,7 @@ class Identifier(Node):
     def regex(cls):
         return re.compile(rf'[_a-zA-Z][_a-zA-Z0-9]*', re.VERBOSE)
 
-    def __init__(self, string: str):
+    def __init__(self, string):
         self.name = self.parse(string).group()
 
     def __str__(self):
@@ -267,9 +267,9 @@ class TemplateArgsList(Node):
     def split_arguments(args_list: str):
         if not args_list:
             return []
-        result: List[str] = []
-        buffer: str = ""
-        depth: int = 0
+        result = []
+        buffer = ""
+        depth = 0
 
         if args_list.startswith(Keys.L_ANG_BRACKET) and args_list.endswith(Keys.R_ANG_BRACKET):
             args_list = args_list[1:-1]
@@ -290,7 +290,7 @@ class TemplateArgsList(Node):
 
         return result
 
-    def __init__(self, string: str):
+    def __init__(self, string):
         args = self.split_arguments(self.parse(string).group())
         self.args_list = [TemplateArgument(arg) for arg in args]
 
@@ -316,7 +316,7 @@ class SimpleTemplateID(Node):
             (?P<argsList>{TemplateArgsList.genericPattern})
         ''', re.VERBOSE)
 
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         self.identifier = Identifier(match.group('identifier'))
         self.template_args_list = TemplateArgsList(match.group('argsList'))
@@ -343,7 +343,7 @@ class OverloadableOperator(Node):
     def PTR(cls):
         return cls(Keys.PTR)
     
-    def __init__(self, string: str):
+    def __init__(self, string):
         self.operator: str = self.parse(string).group()
 
     def __str__(self):
@@ -358,7 +358,7 @@ class OperatorFunctionTemplateID(Node):
             (?P<templateArgsList>{TemplateArgsList.genericPattern})
         ''', re.VERBOSE)
 
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string) 
         self.operator = OverloadableOperator(match.group('operatorFuncID'))
         self.template_args_list = TemplateArgsList(match.group('templateArgsList'))
@@ -398,12 +398,12 @@ class NestedNameSpecifier(Node):
 
         return "", "", scope
     
-    def __init__(self, string: str):
+    def __init__(self, string):
         previous, __, name = self.rpartition_scope(self.parse(string).group().rstrip(Keys.SCOPE_RESOLUTION))
         self.identifier = UnqualifiedID(name)
         self.scope = NestedNameSpecifier(f"{previous}{Keys.SCOPE_RESOLUTION}") if previous else None
 
-    def __str__(self) -> str:
+    def __str__(self):
         return f'{self.scope or ''}{self.identifier}{Keys.SCOPE_RESOLUTION}'
 
 
@@ -481,7 +481,7 @@ class FundamentalTypeSpecifier(Node):
     def UINT64(cls):
         return cls(f'{Keys.UNSIGNED} {Keys.INT64}')
     
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         self.specifier = match.group()
         self.signage = match.group('signage')
@@ -489,7 +489,7 @@ class FundamentalTypeSpecifier(Node):
         if Keys.CHAR not in self.specifier and self.signage == Keys.SIGNED:
             self.specifier = self.specifier.replace(Keys.SIGNED, '').strip()
     
-    def __str__(self) -> str:
+    def __str__(self):
         return f'{self.specifier}'
 
 
@@ -510,10 +510,10 @@ class ClassKey(Node):
     def UNION(cls):
         return cls(Keys.UNION)
     
-    def __init__(self, string: str):
+    def __init__(self, string):
         self.key: str = self.parse(string).group()
     
-    def __str__(self) -> str:
+    def __str__(self):
         return self.key
 
 
@@ -525,12 +525,12 @@ class ElaboratedTypeSpecifier(Node):
             (?P<name>(?:{NestedNameSpecifier.genericPattern})?(?:{UnqualifiedID.genericPattern}))
         ''', re.VERBOSE)
 
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         self.class_key = ClassKey(match.group('classKey'))
         self.type_name = IDExpression(match.group('name'))
 
-    def __str__(self) -> str:
+    def __str__(self):
         return f'{self.class_key} {self.type_name}'
 
 
@@ -551,7 +551,7 @@ class TypeID(Node):
             (?:\s*(?P<ptrDeclarator>{PtrAbstractDeclarator.genericPattern}))?
         ''', re.VERBOSE)
 
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         self.type_spec = TypeSpecifier(match.group('typeSpecifier'))
         self.cv_qualifiers = CVQualifierSeq(match.group('cvQualSeq')) if match.group('cvQualSeq') else None
@@ -567,7 +567,7 @@ class TypeID(Node):
             if Keys.VOLATILE in self.cv_qualifiers:
                 self.ptr_declarator.isPtrToVolatile = True
     
-    def __str__(self) -> str:
+    def __str__(self):
         return f'{self.type_spec} {self.cv_qualifiers or ''}{self.ptr_declarator or ''}'.strip()
     
     def isElaborated(self):
@@ -622,7 +622,7 @@ class PtrOperator(Node):
     def RVAL_REF(cls):
         return cls(Keys.RVAL_REF)
 
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         self.ptr_to_member_of = (
             NestedNameSpecifier(match.group('ptrToMemberOf')) 
@@ -636,7 +636,7 @@ class PtrOperator(Node):
             else None
         )
 
-    def __str__(self) -> str:
+    def __str__(self):
         return f'{self.ptr_to_member_of or ''}{self.operator} {self.cv_qualifiers or ''}'.strip()
 
 
@@ -648,7 +648,7 @@ class ConstructorID(Node):
                 (?P<name>{UnqualifiedID.genericPattern})
             ''', re.VERBOSE)
 
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         self.scope = NestedNameSpecifier(match.group('scope'))
         self.identifier = UnqualifiedID(match.group('name'))
@@ -656,7 +656,7 @@ class ConstructorID(Node):
         if self.identifier != self.scope.identifier:
             raise SyntaxError(f"invalid {type(self).__name__} '{string}'")
     
-    def __str__(self) -> str:
+    def __str__(self):
         return f'{self.scope}{self.identifier}'
 
 
@@ -668,7 +668,7 @@ class DestructorID(Node):
             {Keys.DESTRUCTOR}(?P<name>{UnqualifiedID.genericPattern})
         ''', re.VERBOSE)
     
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         self.scope = NestedNameSpecifier(match.group('scope'))
         self.identifier = UnqualifiedID(match.group('name'))
@@ -676,7 +676,7 @@ class DestructorID(Node):
         if self.identifier != self.scope.identifier:
             raise SyntaxError(f"invalid {type(self).__name__} '{string}'")
     
-    def __str__(self) -> str:
+    def __str__(self):
         return f'{self.scope}{Keys.DESTRUCTOR}{self.identifier}'
 
 
@@ -689,7 +689,7 @@ class OperatorFunctionID(Node):
             (?P<overloadableOp>{OverloadableOperator.genericPattern})
         ''', re.VERBOSE)
 
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         self.scope = NestedNameSpecifier(match.group('scope'))
         self.identifier = OverloadableOperator(match.group('overloadableOp'))
@@ -706,12 +706,12 @@ class ImplicitPropertyID(Node):
             (?P<name>`{Keys.VFTABLE}'|{Keys.VFTABLE})
         ''', re.VERBOSE)
     
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         self.scope = NestedNameSpecifier(match.group('scope'))
         self.identifier = Keys.VFTABLE
     
-    def __str__(self) -> str:
+    def __str__(self):
         return f"{self.scope}`{self.identifier}'"
 
 
@@ -725,12 +725,12 @@ class QualifiedID(Node):
             (?P<name>{UnqualifiedID.genericPattern})
         ''', re.VERBOSE)
     
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         self.scope = NestedNameSpecifier(match.group('scope'))
         self.identifier = UnqualifiedID(match.group('name'))
     
-    def __str__(self) -> str:
+    def __str__(self):
         return f'{self.scope}{self.identifier}'
 
 
@@ -750,7 +750,7 @@ class PtrAbstractDeclarator(Node):
     def regex(cls):
         return re.compile(rf'(?:{PtrOperator.genericPattern}\s*)+', re.VERBOSE)
     
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         ptrOpMatches = PtrOperator.regex.findall(match.group())
         self.operator = PtrOperator(''.join(ptrOpMatches.pop()))
@@ -762,12 +762,12 @@ class PtrAbstractDeclarator(Node):
         self.isPtrToVolatile = False
         
         if self.prev and self.prev.operator.cv_qualifiers:
-            if CVQualifier.CONST in self.prev.operator.cv_qualifiers:
+            if CVQualifierSeq.CONST in self.prev.operator.cv_qualifiers:
                 self.isPtrToConst = True
-            if CVQualifier.VOLATILE in self.prev.operator.cv_qualifiers:
+            if CVQualifierSeq.VOLATILE in self.prev.operator.cv_qualifiers:
                 self.isPtrToVolatile = True
 
-    def __str__(self) -> str:
+    def __str__(self):
         return f'{self.prev or ''} {self.operator}'.strip()
 
 
@@ -776,10 +776,10 @@ class PtrAbstractDeclarator(Node):
 #    def regex(cls):
 #        return re.compile(rf'\{Keys.L_SQR_BRACKET}\s*(?P<constLen>\d*)\s*\{Keys.R_SQR_BRACKET}', re.VERBOSE)
 #    
-#    def __init__(self, string: str):
+#    def __init__(self, string):
 #        self.length = match.group('constLen')
 #    
-#    def __str__(self) -> str:
+#    def __str__(self):
 #        return f'{Keys.L_SQR_BRACKET}{self.length}{Keys.R_SQR_BRACKET}'
 #
 #
@@ -791,11 +791,11 @@ class PtrAbstractDeclarator(Node):
 #            (?P<operator>{SubscriptOperator.genericPattern})
 #        ''', re.VERBOSE)
 #    
-#    def __init__(self, string: str):
+#    def __init__(self, string):
 #        self.type_spec = TypeSpecifier(match.group('name'))
 #        self.operator = SubscriptOperator(match.group('operator'))
 #    
-#    def __str__(self) -> str:
+#    def __str__(self):
 #        return f'{self.type_spec}{self.operator}'
 #
 #
@@ -866,7 +866,7 @@ class FunctionClass(Node):
     def PUBLIC_VIRTUAL(cls):
         return cls(Keys.PUBLIC + Keys.VIRTUAL)
     
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         self.access = AccessSpecifier(match.group('access')) if match.group('access') else None
         self.resolution = (
@@ -874,7 +874,7 @@ class FunctionClass(Node):
             else None
         )
     
-    def __str__(self) -> str:
+    def __str__(self):
         return (
             f'{self.access or ''}{':' if self.access else ''}'
             f'{self.resolution if self.access and self.resolution else ''}'
@@ -896,9 +896,9 @@ class ParametersDeclarator(Node):
     def split_parameters(params_list: str):
         if not params_list:
             return []
-        result: List[str] = []
-        buffer: str = ""
-        depth: int = 0
+        result = []
+        buffer = ""
+        depth = 0
         
         params_list = params_list.lstrip(Keys.L_PAREN)
         params_list = params_list.rstrip(Keys.R_PAREN)
@@ -924,14 +924,14 @@ class ParametersDeclarator(Node):
     def VOID(cls):
         return cls(f'{Keys.L_PAREN}{Keys.VOID}{Keys.R_PAREN}')
     
-    def __init__(self, string: str):
+    def __init__(self, string):
         params = self.split_parameters(self.parse(string).group())
         self.params_list = [TypeID(param) for param in params or [Keys.VOID]]
     
     def __getitem__(self, key):
         return self.params_list[key]
     
-    def __str__(self) -> str:
+    def __str__(self):
         return (
             f'{Keys.L_PAREN}'
             f'{Keys.SEPARATOR.join([str(param) for param in self.params_list]).strip()}'
@@ -940,7 +940,7 @@ class ParametersDeclarator(Node):
 
 
 class FuncNode(Node):
-    def __str__(self) -> str:
+    def __str__(self):
         return (
             f'{self._class if self._class is not FunctionClass.GLOBAL else ''} '
             f'{self.return_type or '\b'} {self.call_conv} '
@@ -978,7 +978,7 @@ class ConstructorDefinition(FuncNode):
             (?:\s+{Keys.PTR64})?
         ''', re.VERBOSE)
 
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         self._class = FunctionClass(match.group('funcClass'))
         self.return_type =  None
@@ -1012,7 +1012,7 @@ class DestructorDefinition(FuncNode):
             (?:\s+{Keys.PTR64})?
         ''', re.VERBOSE)
 
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         self._class = FunctionClass(match.group('funcClass'))
         self.return_type =  None
@@ -1049,7 +1049,7 @@ class OperatorFunctionDefinition(FuncNode):
             (?:\s+{Keys.PTR64})?
         ''', re.VERBOSE)
 
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         self._class = FunctionClass(match.group('funcClass'))
         self.return_type = TypeID(match.group('retType'))
@@ -1086,7 +1086,7 @@ class MethodDefinition(FuncNode):
             (?:\s+{Keys.PTR64})?
         ''', re.VERBOSE)
     
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         self._class = FunctionClass(match.group('funcClass'))
         self.return_type = TypeID(match.group('retType'))
@@ -1119,7 +1119,7 @@ class FunctionDefinition(FuncNode):
             (?P<params>{ParametersDeclarator.genericPattern})
         ''', re.VERBOSE)
     
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         self._class = FunctionClass.GLOBAL
         self.return_type = TypeID(match.group('retType'))
@@ -1160,7 +1160,7 @@ class VariableClass(Node):
     def PUBLIC_STATIC(cls):
         return cls(Keys.PUBLIC + Keys.STATIC)
  
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         self.access = (
             AccessSpecifier(match.group('access')) 
@@ -1173,7 +1173,7 @@ class VariableClass(Node):
             else None
         )
     
-    def __str__(self) -> str:
+    def __str__(self):
         return (
             f'{self.access or ''}{':' if self.access else ''} '
             f'{self.resolution if self.access and self.resolution else ''}'
@@ -1181,7 +1181,7 @@ class VariableClass(Node):
 
 
 class VarNode(Node):
-    def __str__(self) -> str:
+    def __str__(self):
         return (
             f'{self._class if self._class and self._class is not VariableClass.GLOBAL else ''} '
             f'{self.decl_type or ''} {self.identifier}'
@@ -1202,14 +1202,14 @@ class ImplicitPropertyDefinition(VarNode):
             (?P<identifier>{ImplicitPropertyID.genericPattern})
         ''', re.VERBOSE)
         
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         self._class = None
         self.decl_type = None
         self.identifier = ImplicitPropertyID(match.group('identifier'))
         self.storage_quals = CVQualifierSeq.CONST
     
-    def __str__(self) -> str:
+    def __str__(self):
         return f'{Keys.CONST} {self.identifier}'
 
 
@@ -1227,7 +1227,7 @@ class PropertyDefinition(VarNode):
             )
         ''', re.VERBOSE)
     
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         self._class = VariableClass(match.group('varClass'))
         self.decl_type = TypeID(match.group('declType'))
@@ -1252,7 +1252,7 @@ class VariableDefinition(VarNode):
             )
         ''', re.VERBOSE)
     
-    def __init__(self, string: str):
+    def __init__(self, string):
         match = self.parse(string)
         self._class = VariableClass.GLOBAL
         self.decl_type = TypeID(match.group('declType'))
@@ -1274,15 +1274,10 @@ class Definition(Node):
 class Mangler:
     def __init__(self, _def=None):
         self.name_back_refs = []
-        self.result = ''
         if not _def:
             return
         
-        if isinstance(_def, str):
-            self.original = Definition(_def)
-        else:
-            self.original = _def
-        
+        self.original = Definition(_def) if not isinstance(_def, Definition) else _def
         self.result = self.mangle(self.original)
     
     def mangleFunctionClass(self, func_cls: FunctionClass):
@@ -1552,7 +1547,6 @@ class Mangler:
         return result
     
     def mangle(self, _def: Definition):
-        _def = Definition(_def) if not isinstance(_def, Definition) else _def
         result = '?'
         match _def:
             case FunctionDefinition():
