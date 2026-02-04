@@ -931,9 +931,6 @@ class ParametersDeclarator(Node):
     def __getitem__(self, key):
         return self.params_list[key]
     
-    def __bool__(self):
-        return self != self.VOID
-    
     def __str__(self) -> str:
         return (
             f'{Keys.L_PAREN}'
@@ -1031,7 +1028,7 @@ class DestructorDefinition(FuncNode):
         if (
             self.identifier.scope.identifier != self.identifier.identifier
             or
-            self.params
+            self.params != ParametersDeclarator.VOID
         ):
             raise SyntaxError(f"Invalid {type(self).__name__} '{string}'")
 
@@ -1520,7 +1517,7 @@ class Mangler:
         for param in func_def.params:
             result += self.mangleTypeID(param)
         
-        if func_def.params:
+        if func_def.params != ParametersDeclarator.VOID:
             result += '@'
         
         result += 'Z'
