@@ -417,7 +417,7 @@ class OperatorFunctionID(Node):
 class TemplateArgsList(Node):
     @lazyattr
     def regex(cls):
-        return re.compile(rf'{Keys.L_ANG_BRACKET}.*{Keys.R_ANG_BRACKET}', re.VERBOSE)
+        return re.compile(rf'{Keys.L_ANG_BRACKET}.*{Keys.R_ANG_BRACKET}', re.VERBOSE) # this be a problem
 
     @staticmethod
     def split_arguments(args_list: str):
@@ -427,7 +427,7 @@ class TemplateArgsList(Node):
         buffer = ""
         depth = 0
         
-        for char in args_list.lstrip(Keys.L_ANG_BRACKET).rstrip(Keys.R_ANG_BRACKET):
+        for char in args_list[1:-1]:
             if char in (Keys.L_ANG_BRACKET, Keys.L_PAREN):
                 depth += 1
             elif char in (Keys.R_ANG_BRACKET, Keys.R_PAREN):
@@ -510,7 +510,7 @@ class TemplateID(Node):
 
 
 class UnqualifiedID(Node):
-    producers = (Identifier, OperatorFunctionID, TemplateID)
+    producers = (TemplateID, OperatorFunctionID, Identifier)
 
     @lazyattr
     def regex(cls):
@@ -794,7 +794,7 @@ class ImplicitPropertyID(Node):
 
 
 class QualifiedID(Node):
-    producers = (ConstructorID, DestructorID, OperatorFunctionID, ImplicitPropertyID)
+    producers = (DestructorID, ConstructorID, OperatorFunctionID, ImplicitPropertyID)
     
     @lazyattr
     def regex(cls):
@@ -966,7 +966,7 @@ class ParametersDeclarator(Node):
         buffer = ""
         depth = 0
         
-        for char in params_list.lstrip(Keys.L_PAREN).rstrip(Keys.R_PAREN):
+        for char in params_list[1:-1]:
             if char in (Keys.L_ANG_BRACKET, Keys.L_PAREN):
                 depth += 1
             elif char in (Keys.R_ANG_BRACKET, Keys.R_PAREN):
@@ -1147,7 +1147,7 @@ class FuncNode(Node):
         return self._class.resolution == ResolutionSpecifier.STATIC
 
 
-class ConstructorPrototype(FuncNode):
+class ConstructorDeclaration(FuncNode):
     @lazyattr
     def regex(cls):
         return re.compile(rf'''
@@ -1179,7 +1179,7 @@ class ConstructorPrototype(FuncNode):
             return self.BUILD_ERROR
 
 
-class DestructorPrototype(FuncNode):
+class DestructorDeclaration(FuncNode):
     @lazyattr
     def regex(cls):
         return re.compile(rf'''
@@ -1217,7 +1217,7 @@ class DestructorPrototype(FuncNode):
             return self.BUILD_ERROR
 
 
-class OperatorMethodPrototype(FuncNode):
+class OperatorMethodDeclaration(FuncNode):
     @lazyattr
     def regex(cls):
         return re.compile(rf'''
@@ -1251,8 +1251,8 @@ class OperatorMethodPrototype(FuncNode):
         self.instance_ext_quals = PtrExtQualifiers(match.group('instExtQuals') or Keys.PTR64)
 
 
-class MethodPrototype(FuncNode):
-    producers = (ConstructorPrototype, DestructorPrototype, OperatorMethodPrototype)
+class MethodDeclaration(FuncNode):
+    producers = (DestructorDeclaration, ConstructorDeclaration, OperatorMethodDeclaration)
     
     @lazyattr
     def regex(cls):
@@ -1291,8 +1291,8 @@ class MethodPrototype(FuncNode):
             return self.BUILD_ERROR # static method cannot have instance qualifiers
 
 
-class FunctionPrototype(FuncNode):
-    producers = (MethodPrototype,)
+class FunctionDeclaration(FuncNode):
+    producers = (MethodDeclaration,)
     
     @lazyattr
     def regex(cls):
@@ -1438,7 +1438,7 @@ class VariableDeclaration(VarNode):
 
 
 class Declaration(Node):
-    producers = (FunctionPrototype, VariableDeclaration)
+    producers = (FunctionDeclaration, VariableDeclaration)
     
     @lazyattr
     def regex(cls):
@@ -1458,6 +1458,7 @@ class Declaration(Node):
 
 class Mangler:
     def __init__(self, decl=None):
+        self.result = ''
         self.name_back_refs = []
         if not decl:
             return
@@ -1785,7 +1786,7 @@ class Mangler:
         result += 'Z'
         return result
     
-    def mangleFunctionPrototype(self, func: FunctionPrototype):
+    def mangleFunctionDeclaration(self, func: FunctionDeclaration):
         result = self.mangleID(func.identifier)
         result += self.mangleFunctionClass(func._class)
 
@@ -1827,8 +1828,8 @@ class Mangler:
     def mangle(self, decl: Declaration):
         result = '?'
         match decl:
-            case FunctionPrototype():
-                result += self.mangleFunctionPrototype(decl)
+            case FunctionDeclaration():
+                result += self.mangleFunctionDeclaration(decl)
             case VariableDeclaration():
                 result += self.mangleVariableDeclaration(decl)
         
@@ -1852,4 +1853,5 @@ def main(argv=None):
 if __name__ == "__main__":
     result = main()
     for (decl, mangled) in result.items():
-        print(f"\nMangling of :- \"{decl}\"\nis :- \"{mangled}\"")
+        if mangled:
+            print(f"\nMangling of :- \"{decl}\"\nis :- \"{mangled}\"")
