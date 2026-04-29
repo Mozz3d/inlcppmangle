@@ -1492,13 +1492,17 @@ class Mangler:
         if _id in self.name_back_refs:
             return str(self.name_back_refs.index(_id))
 
+        result = ''
         match _id:
             case TemplateID():
-                return self.mangleTemplateID(_id)
+                result = self.mangleTemplateID(_id)
             case _:
-                if len(self.name_back_refs) < 10:
-                    self.name_back_refs.append(_id)
-                return str(_id) + '@'
+                result = str(_id) + '@'
+
+        if len(self.name_back_refs) < 10:
+            self.name_back_refs.append(_id)
+ 
+        return result
     
     def mangleTemplateID(self, template_id: TemplateID):
         result = '?$'
