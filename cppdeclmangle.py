@@ -268,7 +268,7 @@ class OverloadableOperator(Node):
     @lazyattr
     def regex(cls):
         return re.compile(rf'''
-            {Keys.NEW}|{Keys.ASSIGN}|{Keys.RSHIFT}|{Keys.LSHIFT}|{Keys.NOT}|{Keys.EQUALS}|{Keys.NOT_EQUALS}|\{Keys.ARROW}|
+            {Keys.NEW}|\{Keys.ASSIGN}|{Keys.RSHIFT}|{Keys.LSHIFT}|{Keys.NOT}|{Keys.EQUALS}|{Keys.NOT_EQUALS}|\{Keys.ARROW}|
             {re.escape(Keys.PTR)}|\{Keys.INCREMENT}|\{Keys.DECREMENT}|\{Keys.SUBTRACT}|\{Keys.ADD}|\{Keys.REF}|{re.escape(Keys.PTR_TO_MEMBER)}|
             \{Keys.DIVIDE}|\{Keys.MODULUS}|\{Keys.LESS_THAN}|\{Keys.LESS_OR_EQUALS}|\{Keys.GREATER_THAN}|\{Keys.GREATER_OR_EQUALS}|
             \{Keys.COMMA}|\{Keys.MULT_ASSIGN}|\{Keys.ADD_ASSIGN}|\{Keys.SUBTRACT_ASSIGN}|\{Keys.DIVIDE_ASSIGN}
@@ -398,7 +398,7 @@ class OperatorFunctionID(Node):
     def regex(cls):
         return re.compile(rf'''
             (?P<scope>{NestedNameSpecifier.genericPattern})?
-            \b{Keys.OPERATOR}\s*\b
+            \b{Keys.OPERATOR}\b\s*
             (?P<overloadableOp>{OverloadableOperator.genericPattern})
         ''', re.VERBOSE)
 
@@ -503,7 +503,7 @@ class TemplateID(Node):
             (?:
                 {Identifier.genericPattern}
                 |
-                \b{Keys.OPERATOR}\s*\b{OverloadableOperator.genericPattern}
+                \b{Keys.OPERATOR}\b\s*{OverloadableOperator.genericPattern}
             )
             {TemplateArgsList.genericPattern}
         ''', re.VERBOSE)
@@ -518,7 +518,7 @@ class UnqualifiedID(Node):
             (?:
                 {Identifier.genericPattern}
                 |
-                \b{Keys.OPERATOR}\s*\b{OverloadableOperator.genericPattern}
+                \b{Keys.OPERATOR}\b\s*{OverloadableOperator.genericPattern}
             )
             (?:{TemplateArgsList.genericPattern})?
         ''', re.VERBOSE)
@@ -794,7 +794,7 @@ class ImplicitPropertyID(Node):
 
 
 class QualifiedID(Node):
-    producers = (DestructorID, ConstructorID, OperatorFunctionID, ImplicitPropertyID)
+    producers = (OperatorFunctionID, DestructorID, ConstructorID, ImplicitPropertyID)
     
     @lazyattr
     def regex(cls):
@@ -1171,12 +1171,11 @@ class ConstructorDeclaration(FuncNode):
             else CallConvention.CDECL
         )
         self.identifier = ConstructorID(match.group('identifier'))
+        if self.identifier is None:
+            return self.BUILD_ERROR
         self.params = ParametersDeclarator(match.group('params'))
         self.instance_cv_quals = None
         self.instance_ext_quals = PtrExtQualifiers(match.group('instExtQuals') or Keys.PTR64)
-        
-        if self.identifier.identifier != self.identifier.scope.identifier:
-            return self.BUILD_ERROR
 
 
 class DestructorDeclaration(FuncNode):
@@ -1252,7 +1251,7 @@ class OperatorMethodDeclaration(FuncNode):
 
 
 class MethodDeclaration(FuncNode):
-    producers = (DestructorDeclaration, ConstructorDeclaration, OperatorMethodDeclaration)
+    producers = (OperatorMethodDeclaration, DestructorDeclaration, ConstructorDeclaration)
     
     @lazyattr
     def regex(cls):
@@ -1518,8 +1517,6 @@ class Mangler:
     
     def mangleID(self, _id: IDExpression):
         match _id:
-            case UnqualifiedID():
-                result = self.mangleUnqualifiedID(_id)
             case ConstructorID():
                 result = '?0'
             case DestructorID():
@@ -1578,6 +1575,8 @@ class Mangler:
                         result = '?_0'
             case ImplicitPropertyID():
                 result = '?_7'
+            case UnqualifiedID():
+                result = self.mangleUnqualifiedID(_id)
             case _:
                 result = self.mangleUnqualifiedID(_id.identifier)
 
